@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="薬管理">
+<title>薬管理アプリ</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: #f2f2f7; color: #1c1c1e; min-height: 100vh; }
+
+  /* ナビゲーション */
+  .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(20px); border-top: 0.5px solid #c6c6c8; display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
+  .tab-btn { flex: 1; padding: 8px 0 4px; border: none; background: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; color: #8e8e93; font-size: 10px; }
+  .tab-btn.active { color: #007aff; }
+  .tab-btn svg { width: 24px; height: 24px; }
+
+  /* 画面 */
+  .screen { display: none; padding: 0 0 90px; min-height: 100vh; }
+  .screen.active { display: block; }
+  .nav-header { background: rgba(255,255,255,0.92); backdrop-filter: blur(20px); padding: 54px 16px 12px; border-bottom: 0.5px solid #c6c6c8; position: sticky; top: 0; z-index: 50; }
+  .nav-title { font-size: 17px; font-weight: 600; text-align: center; }
+  .nav-date { font-size: 13px; color: #8e8e93; text-align: center; margin-top: 2px; }
+
+  /* カード */
+  .card { background: #fff; border-radius: 12px; margin: 12px 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card-row { display: flex; align-items: center; padding: 13px 16px; border-bottom: 0.5px solid #e5e5ea; gap: 12px; }
+  .card-row:last-child { border-bottom: none; }
+
+  /* 進捗 */
+  .progress-section { padding: 16px 16px 0; }
+  .progress-label { font-size: 13px; color: #8e8e93; margin-bottom: 6px; }
+  .progress-bar { height: 6px; background: #e5e5ea; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #34c759; border-radius: 3px; transition: width 0.4s ease; }
+
+  /* 服薬チェック */
+  .med-icon { width: 38px; height: 38px; border-radius: 50%; background: #e8f4ff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .med-info { flex: 1; min-width: 0; }
+  .med-name { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .med-sub { font-size: 12px; color: #8e8e93; margin-top: 2px; }
+  .check-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #c7c7cc; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+  .check-btn.done { background: #34c759; border-color: #34c759; }
+
+  /* 薬の登録フォーム */
+  .form-section { padding: 12px 16px 0; }
+  .form-label { font-size: 13px; color: #8e8e93; margin-bottom: 6px; padding-left: 4px; }
+  .form-input { width: 100%; padding: 12px 14px; border: 0.5px solid #c6c6c8; border-radius: 10px; font-size: 16px; background: #fff; color: #1c1c1e; outline: none; appearance: none; }
+  .form-input:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
+  .timing-block { background: #fff; border-radius: 12px; margin-bottom: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .timing-header { display: flex; align-items: center; padding: 13px 16px; gap: 12px; cursor: pointer; }
+  .my-cb { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #c7c7cc; background: none; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+  .my-cb.on { background: #007aff; border-color: #007aff; }
+  .timing-label { font-size: 16px; font-weight: 500; flex: 1; }
+  .timing-details { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 10px; border-top: 0.5px solid #e5e5ea; margin-top: 0; }
+  .timing-details.hidden { display: none; }
+  .detail-row { display: flex; align-items: center; gap: 10px; padding-top: 10px; }
+  .detail-label { font-size: 14px; color: #8e8e93; width: 50px; flex-shrink: 0; }
+  .dose-counter { display: flex; align-items: center; gap: 10px; }
+  .dose-btn { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #007aff; background: none; color: #007aff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .dose-val { font-size: 16px; font-weight: 500; min-width: 40px; text-align: center; }
+  .time-input { padding: 7px 12px; border: 0.5px solid #c6c6c8; border-radius: 8px; font-size: 16px; color: #1c1c1e; background: #f2f2f7; flex: 1; outline: none; }
+  .time-input:focus { border-color: #007aff; }
+  .add-btn { display: block; width: calc(100% - 32px); margin: 16px 16px 0; padding: 14px; background: #007aff; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
+  .add-btn:active { background: #0062cc; }
+
+  /* 登録済み薬リスト */
+  .del-btn { width: 28px; height: 28px; border-radius: 50%; border: none; background: #ff3b30; color: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  /* カレンダー */
+  .cal-nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+  .cal-nav-btn { background: none; border: none; color: #007aff; font-size: 22px; cursor: pointer; padding: 4px 10px; }
+  .cal-month { font-size: 17px; font-weight: 600; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); padding: 0 12px 12px; gap: 2px; }
+  .cal-head { text-align: center; font-size: 12px; color: #8e8e93; padding: 4px 0 8px; }
+  .cal-day { text-align: center; padding: 6px 2px 2px; font-size: 15px; border-radius: 8px; cursor: pointer; position: relative; min-height: 38px; }
+  .cal-day.today { color: #007aff; font-weight: 600; }
+  .cal-day.sel { background: #007aff; color: #fff !important; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; margin: auto; flex-direction: column; }
+  .cal-dot { width: 5px; height: 5px; border-radius: 50%; background: #34c759; margin: 2px auto 0; }
+  .cal-dot.missed { background: #ff3b30; }
+  .cal-day.sel .cal-dot { background: rgba(255,255,255,0.8); }
+  .cal-empty { pointer-events: none; }
+  .detail-section { padding: 0 16px 16px; }
+  .detail-title { font-size: 13px; color: #8e8e93; margin-bottom: 8px; }
+
+  /* 通知タブ */
+  .notif-card { background: #fff; border-radius: 12px; margin: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; }
+  .notif-row { display: flex; align-items: center; padding: 13px 16px; border-bottom: 0.5px solid #e5e5ea; gap: 12px; }
+  .notif-row:last-child { border-bottom: none; }
+  .notif-info { flex: 1; }
+  .notif-time { font-size: 17px; font-weight: 500; }
+  .notif-meds { font-size: 12px; color: #8e8e93; margin-top: 2px; }
+  .toggle { position: relative; width: 51px; height: 31px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .toggle-track { position: absolute; inset: 0; background: #e5e5ea; border-radius: 15.5px; transition: background 0.2s; }
+  .toggle input:checked ~ .toggle-track { background: #34c759; }
+  .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: transform 0.2s; pointer-events: none; }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(20px); }
+
+  .empty-msg { text-align: center; color: #8e8e93; font-size: 15px; padding: 60px 32px; line-height: 1.6; }
+  .section-header { font-size: 13px; color: #8e8e93; padding: 16px 16px 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<!-- 今日タブ -->
+<div id="screen-home" class="screen active">
+  <div class="nav-header">
+    <div class="nav-title">今日の服薬</div>
+    <div class="nav-date" id="today-date"></div>
+  </div>
+  <div class="progress-section">
+    <div class="progress-label" id="progress-label">読み込み中...</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+  <div id="home-list" style="margin-top:4px;"></div>
+  <div id="home-empty" class="empty-msg" style="display:none;">
+    「薬の登録」タブから<br>薬を追加してください
+  </div>
+</div>
+
+<!-- 薬の登録タブ -->
+<div id="screen-meds" class="screen">
+  <div class="nav-header"><div class="nav-title">薬の登録</div></div>
+  <div class="form-section" style="margin-top:12px;">
+    <div class="form-label">薬の名前</div>
+    <input type="text" class="form-input" id="med-name-input" placeholder="例：アムロジピン">
+  </div>
+  <div class="form-section" style="margin-top:14px;">
+    <div class="form-label">服用タイミング・錠数・通知時間</div>
+    <div id="timing-blocks"></div>
+  </div>
+  <button class="add-btn" onclick="addMed()">追加する</button>
+
+  <div class="section-header">登録済みの薬</div>
+  <div id="med-list"></div>
+  <div id="med-empty" class="empty-msg" style="display:none;padding:20px 32px;">まだ登録されていません</div>
+</div>
+
+<!-- カレンダータブ -->
+<div id="screen-cal" class="screen">
+  <div class="nav-header"><div class="nav-title">服薬カレンダー</div></div>
+  <div class="card" style="margin-top:12px;">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
+      <span class="cal-month" id="cal-month-label"></span>
+      <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+  <div class="detail-section">
+    <div class="detail-title" id="cal-detail-title"></div>
+    <div id="cal-detail"></div>
+  </div>
+</div>
+
+<!-- 通知タブ -->
+<div id="screen-notif" class="screen">
+  <div class="nav-header"><div class="nav-title">通知設定</div></div>
+  <div style="padding:12px 16px 0;font-size:13px;color:#8e8e93;line-height:1.6;">
+    薬の登録時に設定した通知時間が表示されます。<br>iPhoneのホーム画面に追加後、通知が届きます。
+  </div>
+  <div id="notif-list"></div>
+  <div id="notif-empty" class="empty-msg" style="display:none;">薬を登録すると<br>ここに通知が表示されます</div>
+</div>
+
+<!-- タブバー -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('home')" id="tab-home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+    </svg>
+    今日
+  </button>
+  <button class="tab-btn" onclick="showTab('meds')" id="tab-meds">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M12 4v16m8-8H4"/>
+    </svg>
+    薬の登録
+  </button>
+  <button class="tab-btn" onclick="showTab('cal')" id="tab-cal">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+    </svg>
+    カレンダー
+  </button>
+  <button class="tab-btn" onclick="showTab('notif')" id="tab-notif">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V4a1 1 0 00-2 0v1.083A6 6 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+    </svg>
+    通知
+  </button>
+</div>
+
+<script>
+// ---- データ管理 ----
+var STORAGE_KEY = 'kusuri_app_v1';
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { meds: [], checks: {} }; }
+  catch(e) { return { meds: [], checks: {} }; }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+var appData = loadData();
+
+// ---- タイミング定義 ----
+var TIMINGS = [
+  { label: '朝', defaultTime: '08:00' },
+  { label: '昼', defaultTime: '12:00' },
+  { label: '夜', defaultTime: '19:00' },
+  { label: '就寝前', defaultTime: '22:00' }
+];
+
+var timingState = {};
+function resetTimingState() {
+  TIMINGS.forEach(function(t) {
+    timingState[t.label] = { on: false, dose: 1, time: t.defaultTime };
+  });
+}
+resetTimingState();
+
+// ---- 日付 ----
+var now = new Date();
+var calYear = now.getFullYear();
+var calMonth = now.getMonth();
+var selDay = null;
+
+function todayKey() {
+  return now.getFullYear() + '-' + (now.getMonth()+1) + '-' + now.getDate();
+}
+
+function formatDateLabel(d) {
+  var days = ['日','月','火','水','木','金','土'];
+  return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日（'+days[d.getDay()]+'）';
+}
+
+document.getElementById('today-date').textContent = formatDateLabel(now);
+
+// ---- タブ切り替え ----
+function showTab(t) {
+  ['home','meds','cal','notif'].forEach(function(id) {
+    document.getElementById('screen-'+id).classList.remove('active');
+    document.getElementById('tab-'+id).classList.remove('active');
+  });
+  document.getElementById('screen-'+t).classList.add('active');
+  document.getElementById('tab-'+t).classList.add('active');
+  if(t==='home') renderHome();
+  if(t==='meds') { renderTimingBlocks(); renderMedList(); }
+  if(t==='cal') renderCal();
+  if(t==='notif') renderNotifs();
+}
+
+// ---- 今日タブ ----
+function renderHome() {
+  var data = loadData();
+  var list = document.getElementById('home-list');
+  var empty = document.getElementById('home-empty');
+  var meds = data.meds;
+  if(meds.length === 0) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    document.getElementById('progress-label').textContent = '薬が登録されていません';
+    document.getElementById('progress-fill').style.width = '0%';
+    return;
+  }
+  empty.style.display = 'none';
+  var tk = todayKey();
+  var checks = data.checks[tk] || {};
+  var items = [];
+  meds.forEach(function(m) {
+    m.timings.forEach(function(t) {
+      var k = m.id + '-' + t.label;
+      items.push({ med: m, timing: t, key: k, done: !!checks[k] });
+    });
+  });
+  var done = items.filter(function(i){ return i.done; }).length;
+  var total = items.length;
+  var pct = total > 0 ? Math.round(done/total*100) : 0;
+  document.getElementById('progress-label').textContent = done + ' / ' + total + ' 服薬済み（' + pct + '%）';
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  // 朝昼夜就寝前の順でグループ化
+  var order = ['朝','昼','夜','就寝前'];
+  var groups = {};
+  items.forEach(function(it) {
+    var lbl = it.timing.label;
+    if(!groups[lbl]) groups[lbl] = [];
+    groups[lbl].push(it);
+  });
+  var html = '';
+  order.forEach(function(lbl) {
+    if(!groups[lbl]) return;
+    html += '<div class="section-header">' + lbl + '（' + groups[lbl][0].timing.time + '）</div><div class="card">';
+    groups[lbl].forEach(function(it) {
+      var doseStr = (it.timing.dose % 1 === 0 ? it.timing.dose : it.timing.dose.toFixed(1)) + '錠';
+      html += '<div class="card-row">'
+        + '<div class="med-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" rx="3" fill="#007aff" opacity="0.2"/><rect x="9" y="5" width="6" height="7" rx="2" fill="#007aff" opacity="0.4"/><rect x="10.5" y="12" width="3" height="6" rx="1.5" fill="#007aff"/></svg></div>'
+        + '<div class="med-info"><div class="med-name">' + it.med.name + '</div><div class="med-sub">' + doseStr + '</div></div>'
+        + '<button class="check-btn' + (it.done ? ' done' : '') + '" onclick="toggleCheck(\'' + it.key + '\')">'
+        + (it.done ? '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><polyline points="2.5,8 6,12 13.5,3.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '')
+        + '</button></div>';
+    });
+    html += '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function toggleCheck(key) {
+  var data = loadData();
+  var tk = todayKey();
+  if(!data.checks[tk]) data.checks[tk] = {};
+  data.checks[tk][key] = !data.checks[tk][key];
+  saveData(data);
+  renderHome();
+}
+
+// ---- 薬の登録タブ ----
+function renderTimingBlocks() {
+  var el = document.getElementById('timing-blocks');
+  el.innerHTML = TIMINGS.map(function(td) {
+    var st = timingState[td.label];
+    var doseStr = (st.dose % 1 === 0 ? st.dose : st.dose.toFixed(1)) + '錠';
+    return '<div class="timing-block" id="tb-' + td.label + '">'
+      + '<div class="timing-header" onclick="toggleTiming(\'' + td.label + '\')">'
+      + '<div class="my-cb' + (st.on ? ' on' : '') + '">'
+      + (st.on ? '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><polyline points="1.5,6.5 5,10 11.5,3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '')
+      + '</div>'
+      + '<span class="timing-label">' + td.label + '</span>'
+      + '</div>'
+      + '<div class="timing-details' + (st.on ? '' : ' hidden') + '">'
+      + '<div class="detail-row"><span class="detail-label">錠数</span>'
+      + '<div class="dose-counter">'
+      + '<button class="dose-btn" onclick="event.stopPropagation();changeDose(\'' + td.label + '\',-1)">−</button>'
+      + '<span class="dose-val" id="dv-' + td.label + '">' + doseStr + '</span>'
+      + '<button class="dose-btn" onclick="event.stopPropagation();changeDose(\'' + td.label + '\',1)">+</button>'
+      + '</div></div>'
+      + '<div class="detail-row"><span class="detail-label">通知</span>'
+      + '<input type="time" class="time-input" value="' + st.time + '" onclick="event.stopPropagation()" onchange="changeTime(\'' + td.label + '\',this.value)">'
+      + '</div></div></div>';
+  }).join('');
+}
+
+function toggleTiming(label) {
+  timingState[label].on = !timingState[label].on;
+  renderTimingBlocks();
+}
+
+function changeDose(label, delta) {
+  var st = timingState[label];
+  st.dose = Math.max(0.5, st.dose + delta * 0.5);
+  document.getElementById('dv-' + label).textContent = (st.dose % 1 === 0 ? st.dose : st.dose.toFixed(1)) + '錠';
+}
+
+function changeTime(label, val) {
+  timingState[label].time = val;
+}
+
+function addMed() {
+  var name = document.getElementById('med-name-input').value.trim();
+  if(!name) { alert('薬の名前を入力してください'); return; }
+  var timings = [];
+  TIMINGS.forEach(function(td) {
+    var st = timingState[td.label];
+    if(st.on) timings.push({ label: td.label, dose: st.dose, time: st.time });
+  });
+  if(timings.length === 0) { alert('服用タイミングを1つ以上選んでください'); return; }
+  var data = loadData();
+  data.meds.push({ id: Date.now(), name: name, timings: timings });
+  saveData(data);
+  document.getElementById('med-name-input').value = '';
+  resetTimingState();
+  renderTimingBlocks();
+  renderMedList();
+}
+
+function renderMedList() {
+  var data = loadData();
+  var el = document.getElementById('med-list');
+  var empty = document.getElementById('med-empty');
+  if(data.meds.length === 0) { el.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  el.innerHTML = '<div class="card">' + data.meds.map(function(m) {
+    var sub = m.timings.map(function(t) {
+      return t.label + '：' + (t.dose%1===0?t.dose:t.dose.toFixed(1)) + '錠（' + t.time + '）';
+    }).join('　');
+    return '<div class="card-row">'
+      + '<div class="med-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" rx="3" fill="#007aff" opacity="0.2"/><rect x="9" y="5" width="6" height="7" rx="2" fill="#007aff" opacity="0.4"/><rect x="10.5" y="12" width="3" height="6" rx="1.5" fill="#007aff"/></svg></div>'
+      + '<div class="med-info"><div class="med-name">' + m.name + '</div><div class="med-sub">' + sub + '</div></div>'
+      + '<button class="del-btn" onclick="delMed(' + m.id + ')">×</button>'
+      + '</div>';
+  }).join('') + '</div>';
+}
+
+function delMed(id) {
+  if(!confirm('この薬を削除しますか？')) return;
+  var data = loadData();
+  data.meds = data.meds.filter(function(m){ return m.id !== id; });
+  saveData(data);
+  renderMedList();
+  renderHome();
+  renderNotifs();
+}
+
+// ---- カレンダータブ ----
+function renderCal() {
+  document.getElementById('cal-month-label').textContent = calYear + '年' + (calMonth+1) + '月';
+  var data = loadData();
+  var grid = document.getElementById('cal-grid');
+  var heads = ['日','月','火','水','木','金','土'].map(function(d){ return '<div class="cal-head">' + d + '</div>'; }).join('');
+  var first = new Date(calYear, calMonth, 1).getDay();
+  var last = new Date(calYear, calMonth+1, 0).getDate();
+  var cells = '';
+  for(var i = 0; i < first; i++) cells += '<div class="cal-empty"></div>';
+  for(var d = 1; d <= last; d++) {
+    var key = calYear + '-' + (calMonth+1) + '-' + d;
+    var isToday = d === now.getDate() && calMonth === now.getMonth() && calYear === now.getFullYear();
+    var isSel = selDay === key;
+    var c = data.checks[key] || {};
+    var hasAny = Object.keys(c).length > 0;
+    var allDone = hasAny && Object.values(c).every(function(v){ return v; });
+    var cls = 'cal-day' + (isToday && !isSel ? ' today' : '') + (isSel ? ' sel' : '') + (!hasAny ? ' cal-empty-day' : '');
+    var dot = hasAny ? '<div class="cal-dot' + (allDone ? '' : ' missed') + '"></div>' : '';
+    cells += '<div class="' + cls + '" onclick="selCal(\'' + key + '\')">' + d + dot + '</div>';
+  }
+  grid.innerHTML = heads + cells;
+  renderCalDetail();
+}
+
+function selCal(key) {
+  selDay = selDay === key ? null : key;
+  renderCal();
+}
+
+function renderCalDetail() {
+  var el = document.getElementById('cal-detail');
+  var title = document.getElementById('cal-detail-title');
+  if(!selDay) { el.innerHTML = ''; title.textContent = ''; return; }
+  var parts = selDay.split('-');
+  title.textContent = parts[1] + '月' + parts[2] + '日 の記録';
+  var data = loadData();
+  var c = data.checks[selDay] || {};
+  if(data.meds.length === 0) { el.innerHTML = '<div style="color:#8e8e93;font-size:14px;">薬が登録されていません</div>'; return; }
+  var html = '<div class="card">';
+  data.meds.forEach(function(m) {
+    m.timings.forEach(function(t) {
+      var k = m.id + '-' + t.label;
+      var done = !!c[k];
+      html += '<div class="card-row">'
+        + '<div class="med-info"><div class="med-name">' + m.name + '</div><div class="med-sub">' + t.label + '</div></div>'
+        + '<span style="font-size:13px;padding:4px 10px;border-radius:20px;font-weight:500;background:' + (done?'#d4edda':'#fde8e8') + ';color:' + (done?'#1a7f3c':'#c0392b') + ';">' + (done?'服薬済':'未服薬') + '</span>'
+        + '</div>';
+    });
+  });
+  el.innerHTML = html + '</div>';
+}
+
+function changeMonth(d) {
+  calMonth += d;
+  if(calMonth < 0) { calMonth = 11; calYear--; }
+  if(calMonth > 11) { calMonth = 0; calYear++; }
+  selDay = null;
+  renderCal();
+}
+
+// ---- 通知タブ ----
+function renderNotifs() {
+  var data = loadData();
+  var el = document.getElementById('notif-list');
+  var empty = document.getElementById('notif-empty');
+  var allTimings = [];
+  data.meds.forEach(function(m) {
+    m.timings.forEach(function(t) {
+      allTimings.push({ medName: m.name, label: t.label, time: t.time });
+    });
+  });
+  allTimings.sort(function(a,b){ return a.time.localeCompare(b.time); });
+  if(allTimings.length === 0) { el.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  var grouped = {};
+  allTimings.forEach(function(t) {
+    if(!grouped[t.time]) grouped[t.time] = [];
+    grouped[t.time].push(t);
+  });
+  el.innerHTML = '<div class="notif-card">' + Object.keys(grouped).sort().map(function(time) {
+    var names = grouped[time].map(function(i){ return i.medName + '（' + i.label + '）'; }).join('、');
+    return '<div class="notif-row">'
+      + '<div class="notif-info"><div class="notif-time">' + time + '</div><div class="notif-meds">' + names + '</div></div>'
+      + '<label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>'
+      + '</div>';
+  }).join('') + '</div>';
+}
+
+// ---- 初期表示 ----
+renderHome();
+renderTimingBlocks();
+</script>
+</body>
+</html>
