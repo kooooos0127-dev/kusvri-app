@@ -2,502 +2,1056 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="薬管理">
-<title>薬管理アプリ</title>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="読書カレンダー">
+<meta name="theme-color" content="#6C5CE7">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>読書カレンダー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif; background: #f2f2f7; color: #1c1c1e; min-height: 100vh; }
+:root {
+  --bg: #0f0e17;
+  --bg2: #1a1828;
+  --bg3: #231f35;
+  --card: #1e1c2e;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --purple: #6C5CE7;
+  --purple-light: #8b7ff0;
+  --purple-dim: rgba(108,92,231,0.15);
+  --gold: #F4A932;
+  --gold-dim: rgba(244,169,50,0.15);
+  --teal: #00CEC9;
+  --coral: #E17055;
+  --green: #00B894;
+  --text: #e8e6f0;
+  --text2: #9b97b2;
+  --text3: #5c5875;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Noto Sans JP', sans-serif; overflow: hidden; }
+body { display: flex; flex-direction: column; }
 
-  /* ナビゲーション */
-  .tab-bar { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(20px); border-top: 0.5px solid #c6c6c8; display: flex; padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
-  .tab-btn { flex: 1; padding: 8px 0 4px; border: none; background: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; color: #8e8e93; font-size: 10px; }
-  .tab-btn.active { color: #007aff; }
-  .tab-btn svg { width: 24px; height: 24px; }
+/* ── ナビゲーション ── */
+.nav-bar {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+  flex-shrink: 0;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.nav-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 4px 8px;
+  font-size: 10px;
+  color: var(--text3);
+  cursor: pointer;
+  gap: 3px;
+  transition: color 0.2s;
+  user-select: none;
+}
+.nav-tab.active { color: var(--purple-light); }
+.nav-icon { font-size: 20px; }
 
-  /* 画面 */
-  .screen { display: none; padding: 0 0 90px; min-height: 100vh; }
-  .screen.active { display: block; }
-  .nav-header { background: rgba(255,255,255,0.92); backdrop-filter: blur(20px); padding: 54px 16px 12px; border-bottom: 0.5px solid #c6c6c8; position: sticky; top: 0; z-index: 50; }
-  .nav-title { font-size: 17px; font-weight: 600; text-align: center; }
-  .nav-date { font-size: 13px; color: #8e8e93; text-align: center; margin-top: 2px; }
+/* ── メインコンテンツ ── */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(16px + var(--safe-bottom));
+}
+.page { display: none; padding: 16px; }
+.page.active { display: block; }
 
-  /* カード */
-  .card { background: #fff; border-radius: 12px; margin: 12px 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-  .card-row { display: flex; align-items: center; padding: 13px 16px; border-bottom: 0.5px solid #e5e5ea; gap: 12px; }
-  .card-row:last-child { border-bottom: none; }
+/* ── オンボーディング ── */
+.onboarding {
+  position: fixed; inset: 0; z-index: 100;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.onboarding-card {
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 32px 24px;
+  width: 100%;
+  max-width: 360px;
+  text-align: center;
+}
+.ob-icon { font-size: 56px; margin-bottom: 16px; }
+.ob-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+.ob-sub { font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 24px; }
 
-  /* 進捗 */
-  .progress-section { padding: 16px 16px 0; }
-  .progress-label { font-size: 13px; color: #8e8e93; margin-bottom: 6px; }
-  .progress-bar { height: 6px; background: #e5e5ea; border-radius: 3px; overflow: hidden; }
-  .progress-fill { height: 100%; background: #34c759; border-radius: 3px; transition: width 0.4s ease; }
+/* ── 共通UI ── */
+input, textarea {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 15px;
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus, textarea:focus { border-color: var(--purple); }
+textarea { resize: vertical; min-height: 80px; }
+.btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn:active { opacity: 0.8; transform: scale(0.98); }
+.btn-primary { background: var(--purple); color: #fff; }
+.btn-sub {
+  background: transparent;
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  padding: 8px 16px;
+  width: auto;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+}
+.field-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; }
+.field { margin-bottom: 12px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.section-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.notice { font-size: 12px; text-align: center; margin-top: 8px; min-height: 18px; }
+.notice.ok { color: var(--green); }
+.notice.err { color: var(--coral); }
 
-  /* 服薬チェック */
-  .med-icon { width: 38px; height: 38px; border-radius: 50%; background: #e8f4ff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .med-info { flex: 1; min-width: 0; }
-  .med-name { font-size: 15px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .med-sub { font-size: 12px; color: #8e8e93; margin-top: 2px; }
-  .check-btn { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #c7c7cc; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
-  .check-btn.done { background: #34c759; border-color: #34c759; }
+/* ── ヘッダー ── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--purple-dim);
+  border: 1px solid rgba(108,92,231,0.3);
+  border-radius: 99px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--purple-light);
+}
+.edit-link { font-size: 12px; color: var(--text3); cursor: pointer; text-decoration: underline; }
 
-  /* 薬の登録フォーム */
-  .form-section { padding: 12px 16px 0; }
-  .form-label { font-size: 13px; color: #8e8e93; margin-bottom: 6px; padding-left: 4px; }
-  .form-input { width: 100%; padding: 12px 14px; border: 0.5px solid #c6c6c8; border-radius: 10px; font-size: 16px; background: #fff; color: #1c1c1e; outline: none; appearance: none; }
-  .form-input:focus { border-color: #007aff; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
-  .timing-block { background: #fff; border-radius: 12px; margin-bottom: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-  .timing-header { display: flex; align-items: center; padding: 13px 16px; gap: 12px; cursor: pointer; }
-  .my-cb { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #c7c7cc; background: none; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
-  .my-cb.on { background: #007aff; border-color: #007aff; }
-  .timing-label { font-size: 16px; font-weight: 500; flex: 1; }
-  .timing-details { padding: 0 16px 14px; display: flex; flex-direction: column; gap: 10px; border-top: 0.5px solid #e5e5ea; margin-top: 0; }
-  .timing-details.hidden { display: none; }
-  .detail-row { display: flex; align-items: center; gap: 10px; padding-top: 10px; }
-  .detail-label { font-size: 14px; color: #8e8e93; width: 50px; flex-shrink: 0; }
-  .dose-counter { display: flex; align-items: center; gap: 10px; }
-  .dose-btn { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #007aff; background: none; color: #007aff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
-  .dose-val { font-size: 16px; font-weight: 500; min-width: 40px; text-align: center; }
-  .time-input { padding: 7px 12px; border: 0.5px solid #c6c6c8; border-radius: 8px; font-size: 16px; color: #1c1c1e; background: #f2f2f7; flex: 1; outline: none; }
-  .time-input:focus { border-color: #007aff; }
-  .add-btn { display: block; width: calc(100% - 32px); margin: 16px 16px 0; padding: 14px; background: #007aff; color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
-  .add-btn:active { background: #0062cc; }
+/* ── 統計カード ── */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 8px;
+  text-align: center;
+}
+.stat-label { font-size: 10px; color: var(--text3); margin-bottom: 4px; letter-spacing: 0.05em; }
+.stat-val { font-size: 20px; font-weight: 700; font-family: 'Space Mono', monospace; }
+.stat-val.purple { color: var(--purple-light); }
 
-  /* 登録済み薬リスト */
-  .del-btn { width: 28px; height: 28px; border-radius: 50%; border: none; background: #ff3b30; color: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+/* ── 高度表示 ── */
+.height-hero {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  text-align: center;
+  margin-bottom: 12px;
+}
+.height-big {
+  font-size: 42px;
+  font-weight: 700;
+  font-family: 'Space Mono', monospace;
+  color: var(--purple-light);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.height-sub { font-size: 13px; color: var(--text2); margin-bottom: 4px; }
+.height-lm { font-size: 12px; color: var(--gold); font-weight: 700; }
 
-  /* カレンダー */
-  .cal-nav { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
-  .cal-nav-btn { background: none; border: none; color: #007aff; font-size: 22px; cursor: pointer; padding: 4px 10px; }
-  .cal-month { font-size: 17px; font-weight: 600; }
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); padding: 0 12px 12px; gap: 2px; }
-  .cal-head { text-align: center; font-size: 12px; color: #8e8e93; padding: 4px 0 8px; }
-  .cal-day { text-align: center; padding: 6px 2px 2px; font-size: 15px; border-radius: 8px; cursor: pointer; position: relative; min-height: 38px; }
-  .cal-day.today { color: #007aff; font-weight: 600; }
-  .cal-day.sel { background: #007aff; color: #fff !important; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; margin: auto; flex-direction: column; }
-  .cal-dot { width: 5px; height: 5px; border-radius: 50%; background: #34c759; margin: 2px auto 0; }
-  .cal-dot.missed { background: #ff3b30; }
-  .cal-day.sel .cal-dot { background: rgba(255,255,255,0.8); }
-  .cal-empty { pointer-events: none; }
-  .detail-section { padding: 0 16px 16px; }
-  .detail-title { font-size: 13px; color: #8e8e93; margin-bottom: 8px; }
+/* ── 次のマイルストーン ── */
+.next-box {
+  background: var(--purple-dim);
+  border: 1px solid rgba(108,92,231,0.25);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.next-label { font-size: 11px; color: var(--purple-light); font-weight: 700; margin-bottom: 6px; }
+.progress-bg {
+  background: rgba(255,255,255,0.08);
+  border-radius: 99px;
+  height: 6px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.progress-fill {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--purple);
+  transition: width 0.6s ease;
+}
+.next-text { font-size: 12px; color: var(--text2); }
 
-  /* 通知タブ */
-  .notif-card { background: #fff; border-radius: 12px; margin: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; }
-  .notif-row { display: flex; align-items: center; padding: 13px 16px; border-bottom: 0.5px solid #e5e5ea; gap: 12px; }
-  .notif-row:last-child { border-bottom: none; }
-  .notif-info { flex: 1; }
-  .notif-time { font-size: 17px; font-weight: 500; }
-  .notif-meds { font-size: 12px; color: #8e8e93; margin-top: 2px; }
-  .toggle { position: relative; width: 51px; height: 31px; flex-shrink: 0; }
-  .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
-  .toggle-track { position: absolute; inset: 0; background: #e5e5ea; border-radius: 15.5px; transition: background 0.2s; }
-  .toggle input:checked ~ .toggle-track { background: #34c759; }
-  .toggle-thumb { position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: transform 0.2s; pointer-events: none; }
-  .toggle input:checked ~ .toggle-thumb { transform: translateX(20px); }
+/* ── マイルストーンリスト ── */
+.ms-list { display: flex; flex-direction: column; gap: 6px; }
+.ms-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.ms-item.reached { border-color: rgba(108,92,231,0.35); background: var(--purple-dim); }
+.ms-item.is-next { border-color: rgba(244,169,50,0.35); background: var(--gold-dim); }
+.ms-emoji { font-size: 20px; width: 28px; text-align: center; flex-shrink: 0; }
+.ms-info { flex: 1; min-width: 0; }
+.ms-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.ms-item.reached .ms-name { color: var(--purple-light); }
+.ms-item.is-next .ms-name { color: var(--gold); }
+.ms-h { font-size: 11px; color: var(--text3); margin-top: 1px; font-family: 'Space Mono', monospace; }
+.ms-check { font-size: 16px; color: var(--purple-light); }
+.ms-next-tag { font-size: 10px; font-weight: 700; color: var(--gold); letter-spacing: 0.05em; }
+.cat-tag {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: rgba(255,255,255,0.06);
+  color: var(--text3);
+  margin-left: 4px;
+  font-weight: 400;
+}
 
-  .empty-msg { text-align: center; color: #8e8e93; font-size: 15px; padding: 60px 32px; line-height: 1.6; }
-  .section-header { font-size: 13px; color: #8e8e93; padding: 16px 16px 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+/* ── 本棚 ── */
+.book-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-bottom: 8px;
+}
+.book-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.book-author { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+.book-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill {
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: var(--purple-dim);
+  color: var(--purple-light);
+  font-family: 'Space Mono', monospace;
+}
+.book-memo {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  line-height: 1.6;
+}
+.search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+.search-bar input { flex: 1; font-size: 14px; }
+.sort-sel {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text2);
+  font-size: 12px;
+  padding: 10px 8px;
+  font-family: 'Noto Sans JP', sans-serif;
+}
+.empty { text-align: center; padding: 40px 16px; color: var(--text3); font-size: 14px; line-height: 1.7; }
+
+/* ── 編集モーダル ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 150;
+  background: rgba(0,0,0,0.7);
+  display: none; align-items: flex-end; justify-content: center;
+}
+.modal-sheet {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 20px 20px 0 0;
+  padding: 16px 20px calc(24px + var(--safe-bottom));
+  width: 100%; max-width: 560px;
+  max-height: 88vh; overflow-y: auto;
+}
+.modal-handle { width: 40px; height: 4px; background: var(--border2); border-radius: 99px; margin: 0 auto 14px; }
+.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--text); }
+
+/* ── ランキング ── */
+.rank-switcher {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.rank-switch-btn {
+  flex: 1;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  font-size: 13px;
+  font-family: 'Noto Sans JP', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.rank-switch-btn.active { background: var(--purple); border-color: var(--purple); color: #fff; font-weight: 700; }
+.my-rank-box {
+  background: var(--purple-dim);
+  border: 1px solid rgba(108,92,231,0.3);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+.my-rank-num { font-size: 28px; font-weight: 700; font-family: 'Space Mono', monospace; color: var(--purple-light); }
+.my-rank-label { font-size: 10px; color: var(--text3); margin-bottom: 2px; }
+.my-rank-title { font-size: 13px; font-weight: 700; color: var(--purple-light); }
+.my-rank-h { font-size: 12px; font-family: 'Space Mono', monospace; color: var(--purple-light); font-weight: 700; }
+.rank-list { display: flex; flex-direction: column; gap: 8px; }
+.rank-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.rank-card.r1 { border-color: rgba(244,169,50,0.5); background: rgba(244,169,50,0.08); }
+.rank-card.r2 { border-color: rgba(180,178,169,0.4); background: rgba(180,178,169,0.06); }
+.rank-card.r3 { border-color: rgba(240,153,123,0.4); background: rgba(240,153,123,0.06); }
+.rank-num { font-size: 20px; font-weight: 700; font-family: 'Space Mono', monospace; min-width: 42px; text-align: center; }
+.r1 .rank-num { color: var(--gold); }
+.r2 .rank-num { color: #B4B2A9; }
+.r3 .rank-num { color: var(--coral); }
+.rank-card:not(.r1):not(.r2):not(.r3) .rank-num { color: var(--text3); font-size: 16px; }
+.rank-info { flex: 1; min-width: 0; }
+.rank-name { font-size: 14px; font-weight: 700; color: var(--text); }
+.rank-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-top: 3px;
+  font-weight: 700;
+}
+.rank-h { font-size: 12px; font-family: 'Space Mono', monospace; color: var(--text3); margin-top: 2px; }
+.me-tag {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: var(--purple-dim);
+  color: var(--purple-light);
+  margin-left: 6px;
+  font-weight: 700;
+}
+.refresh-row { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+.loading { text-align: center; padding: 24px; color: var(--text3); font-size: 13px; }
+
+/* ── トースト ── */
+.toast {
+  position: fixed;
+  bottom: calc(80px + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--purple);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 200;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── PWAインストールバナー ── */
+.install-banner {
+  position: fixed;
+  bottom: calc(72px + var(--safe-bottom));
+  left: 16px;
+  right: 16px;
+  background: var(--card);
+  border: 1px solid rgba(108,92,231,0.4);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 90;
+  animation: slideUp 0.4s ease;
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.install-icon { font-size: 28px; }
+.install-text { flex: 1; font-size: 13px; line-height: 1.5; }
+.install-text strong { color: var(--purple-light); }
+.install-close { color: var(--text3); font-size: 20px; cursor: pointer; padding: 4px; }
 </style>
 </head>
 <body>
 
-<!-- 今日タブ -->
-<div id="screen-home" class="screen active">
-  <div class="nav-header">
-    <div class="nav-title">今日の服薬</div>
-    <div class="nav-date" id="today-date"></div>
-  </div>
-  <div class="progress-section">
-    <div class="progress-label" id="progress-label">読み込み中...</div>
-    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-  </div>
-  <div id="home-list" style="margin-top:4px;"></div>
-  <div id="home-empty" class="empty-msg" style="display:none;">
-    「薬の登録」タブから<br>薬を追加してください
-  </div>
-</div>
+<div class="toast" id="toast"></div>
 
-<!-- 薬の登録タブ -->
-<div id="screen-meds" class="screen">
-  <div class="nav-header"><div class="nav-title">薬の登録</div></div>
-  <div class="form-section" style="margin-top:12px;">
-    <div class="form-label">薬の名前</div>
-    <input type="text" class="form-input" id="med-name-input" placeholder="例：アムロジピン">
-  </div>
-  <div class="form-section" style="margin-top:14px;">
-    <div class="form-label">服用タイミング・錠数・通知時間</div>
-    <div id="timing-blocks"></div>
-  </div>
-  <button class="add-btn" onclick="addMed()">追加する</button>
-
-  <div class="section-header">登録済みの薬</div>
-  <div id="med-list"></div>
-  <div id="med-empty" class="empty-msg" style="display:none;padding:20px 32px;">まだ登録されていません</div>
-</div>
-
-<!-- カレンダータブ -->
-<div id="screen-cal" class="screen">
-  <div class="nav-header"><div class="nav-title">服薬カレンダー</div></div>
-  <div class="card" style="margin-top:12px;">
-    <div class="cal-nav">
-      <button class="cal-nav-btn" onclick="changeMonth(-1)">‹</button>
-      <span class="cal-month" id="cal-month-label"></span>
-      <button class="cal-nav-btn" onclick="changeMonth(1)">›</button>
+<!-- オンボーディング -->
+<div class="onboarding" id="onboarding">
+  <div class="onboarding-card">
+    <div class="ob-icon">📚</div>
+    <div class="ob-title">読書カレンダー</div>
+    <div class="ob-sub">本を読んで高さを積み上げよう。<br>まず表示名を設定してください。</div>
+    <div class="field">
+      <input type="text" id="ob-name" placeholder="例：田中 太郎" maxlength="20" style="text-align:center; margin-bottom:12px;">
     </div>
-    <div class="cal-grid" id="cal-grid"></div>
-  </div>
-  <div class="detail-section">
-    <div class="detail-title" id="cal-detail-title"></div>
-    <div id="cal-detail"></div>
+    <button class="btn btn-primary" onclick="completeOnboarding()">はじめる →</button>
+    <div class="notice" id="ob-notice"></div>
   </div>
 </div>
 
-<!-- 通知タブ -->
-<div id="screen-notif" class="screen">
-  <div class="nav-header"><div class="nav-title">通知設定</div></div>
-  <div style="padding:12px 16px 0;font-size:13px;color:#8e8e93;line-height:1.6;">
-    薬の登録時に設定した通知時間が表示されます。<br>iPhoneのホーム画面に追加後、通知が届きます。
+<!-- ナビゲーション -->
+<nav class="nav-bar" id="nav-bar" style="display:none;">
+  <div class="nav-tab active" onclick="switchTab('home')" id="tab-home">
+    <div class="nav-icon">🚀</div>
+    <span>高度マップ</span>
   </div>
-  <div id="notif-list"></div>
-  <div id="notif-empty" class="empty-msg" style="display:none;">薬を登録すると<br>ここに通知が表示されます</div>
+  <div class="nav-tab" onclick="switchTab('add')" id="tab-add">
+    <div class="nav-icon">➕</div>
+    <span>記録する</span>
+  </div>
+  <div class="nav-tab" onclick="switchTab('books')" id="tab-books">
+    <div class="nav-icon">📚</div>
+    <span>本棚</span>
+  </div>
+  <div class="nav-tab" onclick="switchTab('ranking')" id="tab-ranking">
+    <div class="nav-icon">🏆</div>
+    <span>ランキング</span>
+  </div>
+</nav>
+
+<!-- メインコンテンツ -->
+<main class="main" id="main" style="display:none;">
+
+  <!-- 高度マップ -->
+  <div class="page active" id="page-home">
+    <div class="page-header">
+      <div class="user-chip">👤 <span id="name-display"></span></div>
+      <span class="edit-link" onclick="editName()">名前変更</span>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">読んだ本</div>
+        <div class="stat-val" id="s-books">0</div>
+        <div style="font-size:10px;color:var(--text3);">冊</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">総ページ</div>
+        <div class="stat-val" id="s-pages">0</div>
+        <div style="font-size:10px;color:var(--text3);">p</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">積み上げ</div>
+        <div class="stat-val purple" id="s-height-sm">0m</div>
+      </div>
+    </div>
+    <div class="height-hero">
+      <div class="height-big" id="h-num">0m</div>
+      <div class="height-sub" id="h-sub">本を記録してスタート！</div>
+      <div class="height-lm" id="h-lm"></div>
+    </div>
+    <div class="next-box" id="next-box">
+      <div class="next-label" id="next-label">次のランドマーク</div>
+      <div class="progress-bg"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="next-text" id="next-text">東京タワー（333m）まであと 333m</div>
+    </div>
+    <div class="section-title">高度マップ</div>
+    <div class="ms-list" id="ms-list"></div>
+  </div>
+
+  <!-- 記録する -->
+  <div class="page" id="page-add">
+    <div class="section-title">本を記録する</div>
+    <div class="card" style="margin-bottom:0;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px;padding:8px 10px;background:var(--bg3);border-radius:var(--radius-sm);">
+        記録者：<strong id="recorder-name" style="color:var(--text);"></strong>
+        <span style="margin-left:8px;font-size:11px;color:var(--purple-light);">1ページ = 1m</span>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <div class="field-label">タイトル *</div>
+          <input type="text" id="i-title" placeholder="本のタイトル">
+        </div>
+        <div class="field">
+          <div class="field-label">著者</div>
+          <input type="text" id="i-author" placeholder="著者名">
+        </div>
+      </div>
+      <div class="row3">
+        <div class="field">
+          <div class="field-label">ページ数 *</div>
+          <input type="number" id="i-pages" placeholder="320" min="1" inputmode="numeric">
+        </div>
+        <div class="field">
+          <div class="field-label">読書時間(分)</div>
+          <input type="number" id="i-mins" placeholder="60" min="0" inputmode="numeric">
+        </div>
+        <div class="field">
+          <div class="field-label">読んだ日</div>
+          <input type="date" id="i-date">
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">感想・メモ</div>
+        <textarea id="i-memo" placeholder="読んだ感想や気づきを..."></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="addBook()">記録して積み上げる 🚀</button>
+      <div class="notice" id="add-notice"></div>
+    </div>
+  </div>
+
+  <!-- 本棚 -->
+  <div class="page" id="page-books">
+    <div class="page-header">
+      <div class="section-title" style="margin:0;">本棚 <span id="book-count" style="color:var(--text3);font-weight:400;"></span></div>
+      <button class="btn-sub" onclick="loadBooks()">再読込</button>
+    </div>
+    <div class="search-bar">
+      <input type="text" id="search-q" placeholder="タイトル・著者で検索..." oninput="renderBooks()">
+      <select class="sort-sel" id="sort-sel" onchange="renderBooks()">
+        <option value="new">新しい順</option>
+        <option value="old">古い順</option>
+        <option value="p_desc">ページ↓</option>
+        <option value="p_asc">ページ↑</option>
+      </select>
+    </div>
+    <div id="book-list"></div>
+  </div>
+
+  <!-- ランキング -->
+  <div class="page" id="page-ranking">
+    <div class="my-rank-box" id="my-rank-box">
+      <div class="my-rank-num" id="my-rank-num">-</div>
+      <div>
+        <div class="my-rank-label">あなたの順位</div>
+        <div class="my-rank-title" id="my-rank-title">-</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="my-rank-label">高度</div>
+        <div class="my-rank-h" id="my-rank-h">0m</div>
+      </div>
+    </div>
+    <div class="rank-switcher">
+      <button class="rank-switch-btn active" onclick="switchRank('total')" id="rb-total">総合</button>
+      <button class="rank-switch-btn" onclick="switchRank('monthly')" id="rb-monthly">今月</button>
+    </div>
+    <div class="refresh-row">
+      <button class="btn-sub" onclick="loadRanking()">🔄 更新</button>
+    </div>
+    <div class="rank-list" id="rank-list"></div>
+  </div>
+
+</main>
+
+<!-- 編集モーダル -->
+<div class="modal-overlay" id="edit-modal" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">本の情報を編集</div>
+    <div class="row2">
+      <div class="field"><div class="field-label">タイトル *</div><input type="text" id="edit-title"></div>
+      <div class="field"><div class="field-label">著者</div><input type="text" id="edit-author"></div>
+    </div>
+    <div class="row3">
+      <div class="field"><div class="field-label">ページ数 *</div><input type="number" id="edit-pages" min="1" inputmode="numeric"></div>
+      <div class="field"><div class="field-label">読書時間(分)</div><input type="number" id="edit-mins" min="0" inputmode="numeric"></div>
+      <div class="field"><div class="field-label">読んだ日</div><input type="date" id="edit-date"></div>
+    </div>
+    <div class="field"><div class="field-label">感想・メモ</div><textarea id="edit-memo"></textarea></div>
+    <button class="btn btn-primary" onclick="saveEdit()">保存する</button>
+    <button onclick="closeEditModal()" style="width:100%;padding:12px;margin-top:8px;background:transparent;border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text2);font-size:14px;cursor:pointer;">キャンセル</button>
+    <div class="notice" id="edit-notice"></div>
+  </div>
 </div>
 
-<!-- タブバー -->
-<div class="tab-bar">
-  <button class="tab-btn active" onclick="showTab('home')" id="tab-home">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-      <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-    </svg>
-    今日
-  </button>
-  <button class="tab-btn" onclick="showTab('meds')" id="tab-meds">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-      <path d="M12 4v16m8-8H4"/>
-    </svg>
-    薬の登録
-  </button>
-  <button class="tab-btn" onclick="showTab('cal')" id="tab-cal">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-      <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
-    </svg>
-    カレンダー
-  </button>
-  <button class="tab-btn" onclick="showTab('notif')" id="tab-notif">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-      <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V4a1 1 0 00-2 0v1.083A6 6 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-    </svg>
-    通知
-  </button>
+<!-- PWAインストールバナー（Safari用） -->
+<div class="install-banner" id="install-banner" style="display:none;">
+  <div class="install-icon">📱</div>
+  <div class="install-text">
+    <strong>ホーム画面に追加</strong>してアプリとして使えます。<br>
+    Safariの「共有」→「ホーム画面に追加」
+  </div>
+  <div class="install-close" onclick="dismissBanner()">✕</div>
 </div>
 
 <script>
-// ---- データ管理 ----
-var STORAGE_KEY = 'kusuri_app_v1';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxz4PatvMDhjtOaiS6NY8YV-77i2rWSUTRdwgLxem8JJ1Dgd_Ps92YYYfEX5dl0N45xQQ/exec';
+const K_NAME = 'rcal_name';
+const K_UID  = 'rcal_uid';
+const K_BOOKS = 'rcal_books';
+const K_BANNER = 'rcal_banner';
 
-function loadData() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { meds: [], checks: {} }; }
-  catch(e) { return { meds: [], checks: {} }; }
-}
+const MILESTONES = [
+  {name:'東京タワー',      h:333,       icon:'🗼', cat:'建物'},
+  {name:'東京スカイツリー',h:634,       icon:'📡', cat:'建物'},
+  {name:'ブルジュ・ハリファ',h:828,     icon:'🏙', cat:'建物'},
+  {name:'富士山',          h:3776,      icon:'🗻', cat:'山'},
+  {name:'エベレスト',      h:8849,      icon:'⛰', cat:'山'},
+  {name:'成層圏 下限',     h:12000,     icon:'✈', cat:'空'},
+  {name:'気球 最高高度',   h:41419,     icon:'🎈', cat:'飛行'},
+  {name:'成層圏 上限',     h:50000,     icon:'🌤', cat:'空'},
+  {name:'中間圏 上限',     h:80000,     icon:'🌌', cat:'宇宙'},
+  {name:'カーマン・ライン',h:100000,    icon:'🚀', cat:'宇宙'},
+  {name:'オーロラ発生高度',h:150000,    icon:'✨', cat:'宇宙'},
+  {name:'ISS',             h:400000,    icon:'🛸', cat:'宇宙'},
+  {name:'静止軌道衛星',    h:35786000,  icon:'🛰', cat:'宇宙'},
+  {name:'月',              h:384400000, icon:'🌕', cat:'天体'},
+].sort((a,b)=>a.h-b.h);
 
-function saveData(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-var appData = loadData();
-
-// ---- タイミング定義 ----
-var TIMINGS = [
-  { label: '朝', defaultTime: '08:00' },
-  { label: '昼', defaultTime: '12:00' },
-  { label: '夜', defaultTime: '19:00' },
-  { label: '就寝前', defaultTime: '22:00' }
+const TITLES = [
+  {rank:1,total:true, label:'🏆 伝説の賢者',      color:'#F4A932', bg:'rgba(244,169,50,0.15)'},
+  {rank:2,total:true, label:'⚔️ 知識の覇者',       color:'#B4B2A9', bg:'rgba(180,178,169,0.12)'},
+  {rank:3,total:true, label:'🛡 読書の勇者',       color:'#E17055', bg:'rgba(225,112,85,0.12)'},
+  {rank:4,total:true, label:'📖 本の探求者',       color:'#00CEC9', bg:'rgba(0,206,201,0.1)'},
+  {rank:5,total:true, label:'🌱 知恵の修行者',     color:'#00B894', bg:'rgba(0,184,148,0.1)'},
+  {rank:1,total:false,label:'⚡ 今月の閃光賢者',   color:'#F4A932', bg:'rgba(244,169,50,0.15)'},
+  {rank:2,total:false,label:'🔥 今月の炎の読者',   color:'#E17055', bg:'rgba(225,112,85,0.12)'},
+  {rank:3,total:false,label:'💫 今月の星詠み師',   color:'#6C5CE7', bg:'rgba(108,92,231,0.15)'},
+  {rank:4,total:false,label:'🌊 今月の波乗り賢者', color:'#00CEC9', bg:'rgba(0,206,201,0.1)'},
+  {rank:5,total:false,label:'🌿 今月の新芽の勇者', color:'#00B894', bg:'rgba(0,184,148,0.1)'},
 ];
 
-var timingState = {};
-function resetTimingState() {
-  TIMINGS.forEach(function(t) {
-    timingState[t.label] = { on: false, dose: 1, time: t.defaultTime };
+let books = [], rankData = {total:[], monthly:[]}, rankMode = 'total';
+let myName = '', myUID = '';
+
+// ── ユーティリティ ──
+function ls(k, v) {
+  if (v === undefined) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+  try { localStorage.setItem(k, v); } catch(e) {}
+}
+
+function genUID() { return 'u' + Date.now() + Math.random().toString(36).slice(2,7); }
+
+function fmtH(m) {
+  if (m >= 384400000) return (m/384400000).toFixed(3) + '× 月';
+  if (m >= 1000000)   return (m/1000000).toFixed(2)   + '千km';
+  if (m >= 100000)    return (m/1000).toFixed(0)       + 'km';
+  if (m >= 1000)      return (m/1000).toFixed(1)       + 'km';
+  return m.toLocaleString() + 'm';
+}
+
+function totalH() { return books.reduce((s,b) => s + (parseInt(b.pages)||0), 0); }
+
+function monthlyH() {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth()+1;
+  return books.filter(b => {
+    if (!b.date) return false;
+    const [by, bm] = b.date.split('-').map(Number);
+    return by === y && bm === m;
+  }).reduce((s,b) => s + (parseInt(b.pages)||0), 0);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+async function gasCall(params) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(GAS_URL + '?' + qs);
+  return res.json();
+}
+
+// ── オンボーディング ──
+async function completeOnboarding() {
+  const n = document.getElementById('ob-name').value.trim();
+  if (!n) { showNotice('ob-notice', '名前を入力してください', 'err'); return; }
+  showNotice('ob-notice', 'サーバーに登録中...', '');
+  try {
+    await gasCall({ action:'registerUser', userId: myUID, name: n });
+  } catch(e) {}
+  myName = n;
+  ls(K_NAME, myName);
+  document.getElementById('onboarding').style.display = 'none';
+  showApp();
+}
+
+function showApp() {
+  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('nav-bar').style.display = 'flex';
+  document.getElementById('main').style.display = 'block';
+  document.getElementById('name-display').textContent = myName;
+  document.getElementById('recorder-name').textContent = myName;
+  document.getElementById('i-date').value = new Date().toISOString().split('T')[0];
+  updateHome();
+  loadBooks();
+  checkInstallBanner();
+}
+
+function editName() {
+  const n = prompt('新しい表示名を入力してください', myName);
+  if (!n || !n.trim()) return;
+  myName = n.trim();
+  ls(K_NAME, myName);
+  document.getElementById('name-display').textContent = myName;
+  document.getElementById('recorder-name').textContent = myName;
+  try { gasCall({ action:'registerUser', userId: myUID, name: myName }); } catch(e) {}
+  showToast('名前を変更しました：' + myName);
+}
+
+// ── タブ切り替え ──
+function switchTab(name) {
+  ['home','add','books','ranking'].forEach(t => {
+    document.getElementById('page-' + t).classList.toggle('active', t === name);
+    document.getElementById('tab-' + t).classList.toggle('active', t === name);
   });
-}
-resetTimingState();
-
-// ---- 日付 ----
-var now = new Date();
-var calYear = now.getFullYear();
-var calMonth = now.getMonth();
-var selDay = null;
-
-function todayKey() {
-  return now.getFullYear() + '-' + (now.getMonth()+1) + '-' + now.getDate();
+  if (name === 'home')    updateHome();
+  if (name === 'books')   renderBooks();
+  if (name === 'ranking') loadRanking();
 }
 
-function formatDateLabel(d) {
-  var days = ['日','月','火','水','木','金','土'];
-  return d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日（'+days[d.getDay()]+'）';
-}
+// ── 高度マップ更新 ──
+function updateHome() {
+  const h = totalH();
+  document.getElementById('s-books').textContent  = books.length;
+  document.getElementById('s-pages').textContent  = h.toLocaleString();
+  document.getElementById('s-height-sm').textContent = fmtH(h);
+  document.getElementById('h-num').textContent    = fmtH(h);
 
-document.getElementById('today-date').textContent = formatDateLabel(now);
+  const reached = MILESTONES.filter(m => h >= m.h);
+  const next    = MILESTONES.find(m => h < m.h);
 
-// ---- タブ切り替え ----
-function showTab(t) {
-  ['home','meds','cal','notif'].forEach(function(id) {
-    document.getElementById('screen-'+id).classList.remove('active');
-    document.getElementById('tab-'+id).classList.remove('active');
-  });
-  document.getElementById('screen-'+t).classList.add('active');
-  document.getElementById('tab-'+t).classList.add('active');
-  if(t==='home') renderHome();
-  if(t==='meds') { renderTimingBlocks(); renderMedList(); }
-  if(t==='cal') renderCal();
-  if(t==='notif') renderNotifs();
-}
-
-// ---- 今日タブ ----
-function renderHome() {
-  var data = loadData();
-  var list = document.getElementById('home-list');
-  var empty = document.getElementById('home-empty');
-  var meds = data.meds;
-  if(meds.length === 0) {
-    list.innerHTML = '';
-    empty.style.display = 'block';
-    document.getElementById('progress-label').textContent = '薬が登録されていません';
-    document.getElementById('progress-fill').style.width = '0%';
-    return;
+  if (reached.length > 0) {
+    const top = reached[reached.length - 1];
+    document.getElementById('h-sub').textContent = top.icon + ' ' + top.name + 'を突破！';
+    document.getElementById('h-lm').textContent  = reached.length + ' / ' + MILESTONES.length + ' ランドマーク到達';
+  } else {
+    document.getElementById('h-sub').textContent = '本を記録してスタート！';
+    document.getElementById('h-lm').textContent  = '';
   }
-  empty.style.display = 'none';
-  var tk = todayKey();
-  var checks = data.checks[tk] || {};
-  var items = [];
-  meds.forEach(function(m) {
-    m.timings.forEach(function(t) {
-      var k = m.id + '-' + t.label;
-      items.push({ med: m, timing: t, key: k, done: !!checks[k] });
-    });
-  });
-  var done = items.filter(function(i){ return i.done; }).length;
-  var total = items.length;
-  var pct = total > 0 ? Math.round(done/total*100) : 0;
-  document.getElementById('progress-label').textContent = done + ' / ' + total + ' 服薬済み（' + pct + '%）';
-  document.getElementById('progress-fill').style.width = pct + '%';
 
-  // 朝昼夜就寝前の順でグループ化
-  var order = ['朝','昼','夜','就寝前'];
-  var groups = {};
-  items.forEach(function(it) {
-    var lbl = it.timing.label;
-    if(!groups[lbl]) groups[lbl] = [];
-    groups[lbl].push(it);
-  });
-  var html = '';
-  order.forEach(function(lbl) {
-    if(!groups[lbl]) return;
-    html += '<div class="section-header">' + lbl + '（' + groups[lbl][0].timing.time + '）</div><div class="card">';
-    groups[lbl].forEach(function(it) {
-      var doseStr = (it.timing.dose % 1 === 0 ? it.timing.dose : it.timing.dose.toFixed(1)) + '錠';
-      html += '<div class="card-row">'
-        + '<div class="med-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" rx="3" fill="#007aff" opacity="0.2"/><rect x="9" y="5" width="6" height="7" rx="2" fill="#007aff" opacity="0.4"/><rect x="10.5" y="12" width="3" height="6" rx="1.5" fill="#007aff"/></svg></div>'
-        + '<div class="med-info"><div class="med-name">' + it.med.name + '</div><div class="med-sub">' + doseStr + '</div></div>'
-        + '<button class="check-btn' + (it.done ? ' done' : '') + '" onclick="toggleCheck(\'' + it.key + '\')">'
-        + (it.done ? '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><polyline points="2.5,8 6,12 13.5,3.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '')
-        + '</button></div>';
-    });
-    html += '</div>';
-  });
-  list.innerHTML = html;
-}
+  if (next) {
+    const prev = reached.length > 0 ? reached[reached.length-1].h : 0;
+    const pct  = Math.min(100, Math.round((h - prev) / (next.h - prev) * 100));
+    document.getElementById('next-label').textContent = '次: ' + next.icon + ' ' + next.name;
+    document.getElementById('prog-fill').style.width  = pct + '%';
+    document.getElementById('next-text').textContent  = fmtH(next.h) + 'まであと ' + fmtH(next.h - h) + ' (' + pct + '%)';
+  } else {
+    document.getElementById('next-label').textContent = '全ランドマーク制覇！';
+    document.getElementById('prog-fill').style.width  = '100%';
+    document.getElementById('next-text').textContent  = '月まで到達。伝説の読者！';
+  }
 
-function toggleCheck(key) {
-  var data = loadData();
-  var tk = todayKey();
-  if(!data.checks[tk]) data.checks[tk] = {};
-  data.checks[tk][key] = !data.checks[tk][key];
-  saveData(data);
-  renderHome();
-}
-
-// ---- 薬の登録タブ ----
-function renderTimingBlocks() {
-  var el = document.getElementById('timing-blocks');
-  el.innerHTML = TIMINGS.map(function(td) {
-    var st = timingState[td.label];
-    var doseStr = (st.dose % 1 === 0 ? st.dose : st.dose.toFixed(1)) + '錠';
-    return '<div class="timing-block" id="tb-' + td.label + '">'
-      + '<div class="timing-header" onclick="toggleTiming(\'' + td.label + '\')">'
-      + '<div class="my-cb' + (st.on ? ' on' : '') + '">'
-      + (st.on ? '<svg width="13" height="13" viewBox="0 0 13 13" fill="none"><polyline points="1.5,6.5 5,10 11.5,3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '')
-      + '</div>'
-      + '<span class="timing-label">' + td.label + '</span>'
-      + '</div>'
-      + '<div class="timing-details' + (st.on ? '' : ' hidden') + '">'
-      + '<div class="detail-row"><span class="detail-label">錠数</span>'
-      + '<div class="dose-counter">'
-      + '<button class="dose-btn" onclick="event.stopPropagation();changeDose(\'' + td.label + '\',-1)">−</button>'
-      + '<span class="dose-val" id="dv-' + td.label + '">' + doseStr + '</span>'
-      + '<button class="dose-btn" onclick="event.stopPropagation();changeDose(\'' + td.label + '\',1)">+</button>'
-      + '</div></div>'
-      + '<div class="detail-row"><span class="detail-label">通知</span>'
-      + '<input type="time" class="time-input" value="' + st.time + '" onclick="event.stopPropagation()" onchange="changeTime(\'' + td.label + '\',this.value)">'
-      + '</div></div></div>';
+  document.getElementById('ms-list').innerHTML = MILESTONES.map(m => {
+    const done   = h >= m.h;
+    const isNext = m === next;
+    return `<div class="ms-item${done?' reached':''}${isNext?' is-next':''}">
+      <div class="ms-emoji">${m.icon}</div>
+      <div class="ms-info">
+        <div class="ms-name">${m.name}<span class="cat-tag">${m.cat}</span></div>
+        <div class="ms-h">${fmtH(m.h)}</div>
+      </div>
+      ${done ? '<div class="ms-check">✓</div>' : (isNext ? '<div class="ms-next-tag">NEXT</div>' : '')}
+    </div>`;
   }).join('');
 }
 
-function toggleTiming(label) {
-  timingState[label].on = !timingState[label].on;
-  renderTimingBlocks();
-}
+// ── 本を記録 ──
+async function addBook() {
+  const title = document.getElementById('i-title').value.trim();
+  const pages = parseInt(document.getElementById('i-pages').value) || 0;
+  if (!title) { showNotice('add-notice', 'タイトルを入力してください', 'err'); return; }
+  if (!pages) { showNotice('add-notice', 'ページ数を入力してください', 'err'); return; }
 
-function changeDose(label, delta) {
-  var st = timingState[label];
-  st.dose = Math.max(0.5, st.dose + delta * 0.5);
-  document.getElementById('dv-' + label).textContent = (st.dose % 1 === 0 ? st.dose : st.dose.toFixed(1)) + '錠';
-}
-
-function changeTime(label, val) {
-  timingState[label].time = val;
-}
-
-function addMed() {
-  var name = document.getElementById('med-name-input').value.trim();
-  if(!name) { alert('薬の名前を入力してください'); return; }
-  var timings = [];
-  TIMINGS.forEach(function(td) {
-    var st = timingState[td.label];
-    if(st.on) timings.push({ label: td.label, dose: st.dose, time: st.time });
-  });
-  if(timings.length === 0) { alert('服用タイミングを1つ以上選んでください'); return; }
-  var data = loadData();
-  data.meds.push({ id: Date.now(), name: name, timings: timings });
-  saveData(data);
-  document.getElementById('med-name-input').value = '';
-  resetTimingState();
-  renderTimingBlocks();
-  renderMedList();
-}
-
-function renderMedList() {
-  var data = loadData();
-  var el = document.getElementById('med-list');
-  var empty = document.getElementById('med-empty');
-  if(data.meds.length === 0) { el.innerHTML = ''; empty.style.display = 'block'; return; }
-  empty.style.display = 'none';
-  el.innerHTML = '<div class="card">' + data.meds.map(function(m) {
-    var sub = m.timings.map(function(t) {
-      return t.label + '：' + (t.dose%1===0?t.dose:t.dose.toFixed(1)) + '錠（' + t.time + '）';
-    }).join('　');
-    return '<div class="card-row">'
-      + '<div class="med-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" rx="3" fill="#007aff" opacity="0.2"/><rect x="9" y="5" width="6" height="7" rx="2" fill="#007aff" opacity="0.4"/><rect x="10.5" y="12" width="3" height="6" rx="1.5" fill="#007aff"/></svg></div>'
-      + '<div class="med-info"><div class="med-name">' + m.name + '</div><div class="med-sub">' + sub + '</div></div>'
-      + '<button class="del-btn" onclick="delMed(' + m.id + ')">×</button>'
-      + '</div>';
-  }).join('') + '</div>';
-}
-
-function delMed(id) {
-  if(!confirm('この薬を削除しますか？')) return;
-  var data = loadData();
-  data.meds = data.meds.filter(function(m){ return m.id !== id; });
-  saveData(data);
-  renderMedList();
-  renderHome();
-  renderNotifs();
-}
-
-// ---- カレンダータブ ----
-function renderCal() {
-  document.getElementById('cal-month-label').textContent = calYear + '年' + (calMonth+1) + '月';
-  var data = loadData();
-  var grid = document.getElementById('cal-grid');
-  var heads = ['日','月','火','水','木','金','土'].map(function(d){ return '<div class="cal-head">' + d + '</div>'; }).join('');
-  var first = new Date(calYear, calMonth, 1).getDay();
-  var last = new Date(calYear, calMonth+1, 0).getDate();
-  var cells = '';
-  for(var i = 0; i < first; i++) cells += '<div class="cal-empty"></div>';
-  for(var d = 1; d <= last; d++) {
-    var key = calYear + '-' + (calMonth+1) + '-' + d;
-    var isToday = d === now.getDate() && calMonth === now.getMonth() && calYear === now.getFullYear();
-    var isSel = selDay === key;
-    var c = data.checks[key] || {};
-    var hasAny = Object.keys(c).length > 0;
-    var allDone = hasAny && Object.values(c).every(function(v){ return v; });
-    var cls = 'cal-day' + (isToday && !isSel ? ' today' : '') + (isSel ? ' sel' : '') + (!hasAny ? ' cal-empty-day' : '');
-    var dot = hasAny ? '<div class="cal-dot' + (allDone ? '' : ' missed') + '"></div>' : '';
-    cells += '<div class="' + cls + '" onclick="selCal(\'' + key + '\')">' + d + dot + '</div>';
+  showNotice('add-notice', '送信中...', '');
+  const book = {
+    title, pages,
+    author: document.getElementById('i-author').value.trim(),
+    mins:   document.getElementById('i-mins').value,
+    date:   document.getElementById('i-date').value,
+    memo:   document.getElementById('i-memo').value.trim(),
+  };
+  try {
+    await gasCall({ action:'addBook', userId:myUID, name:myName, ...book });
+    books.push(book);
+    ls(K_BOOKS, JSON.stringify(books));
+    showNotice('add-notice', '「' + title + '」を記録しました！', 'ok');
+    showToast('🚀 ' + pages + 'm 積み上げた！');
+    ['i-title','i-author','i-pages','i-mins','i-memo'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('i-date').value = new Date().toISOString().split('T')[0];
+    updateHome();
+  } catch(e) {
+    showNotice('add-notice', '送信エラー。ネットワークを確認してください。', 'err');
   }
-  grid.innerHTML = heads + cells;
-  renderCalDetail();
 }
 
-function selCal(key) {
-  selDay = selDay === key ? null : key;
-  renderCal();
+// ── 本棚 ──
+async function loadBooks() {
+  document.getElementById('book-list').innerHTML = '<div class="loading">読み込み中...</div>';
+  try {
+    const res = await gasCall({ action:'getBooks', userId: myUID });
+    if (res.books) { books = res.books; ls(K_BOOKS, JSON.stringify(books)); updateHome(); }
+  } catch(e) {}
+  renderBooks();
 }
 
-function renderCalDetail() {
-  var el = document.getElementById('cal-detail');
-  var title = document.getElementById('cal-detail-title');
-  if(!selDay) { el.innerHTML = ''; title.textContent = ''; return; }
-  var parts = selDay.split('-');
-  title.textContent = parts[1] + '月' + parts[2] + '日 の記録';
-  var data = loadData();
-  var c = data.checks[selDay] || {};
-  if(data.meds.length === 0) { el.innerHTML = '<div style="color:#8e8e93;font-size:14px;">薬が登録されていません</div>'; return; }
-  var html = '<div class="card">';
-  data.meds.forEach(function(m) {
-    m.timings.forEach(function(t) {
-      var k = m.id + '-' + t.label;
-      var done = !!c[k];
-      html += '<div class="card-row">'
-        + '<div class="med-info"><div class="med-name">' + m.name + '</div><div class="med-sub">' + t.label + '</div></div>'
-        + '<span style="font-size:13px;padding:4px 10px;border-radius:20px;font-weight:500;background:' + (done?'#d4edda':'#fde8e8') + ';color:' + (done?'#1a7f3c':'#c0392b') + ';">' + (done?'服薬済':'未服薬') + '</span>'
-        + '</div>';
-    });
-  });
-  el.innerHTML = html + '</div>';
+
+function renderBooks() {
+  const q    = (document.getElementById('search-q').value || '').toLowerCase();
+  const sort = document.getElementById('sort-sel').value;
+  let list   = books.filter(b =>
+    (b.title||'').toLowerCase().includes(q) || (b.author||'').toLowerCase().includes(q)
+  );
+  if      (sort === 'new')    list = [...list].reverse();
+  else if (sort === 'p_desc') list = [...list].sort((a,b) => b.pages - a.pages);
+  else if (sort === 'p_asc')  list = [...list].sort((a,b) => a.pages - b.pages);
+
+  document.getElementById('book-count').textContent = '（' + books.length + '冊）';
+  if (list.length === 0) {
+    document.getElementById('book-list').innerHTML =
+      '<div class="empty">まだ本が登録されていません。<br>「記録する」タブから追加してください。</div>';
+    return;
+  }
+  document.getElementById('book-list').innerHTML = list.map(b => {
+    const realIdx = books.indexOf(b);
+    return `
+    <div class="book-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+        <div style="flex:1;min-width:0;">
+          <div class="book-title">${b.title}</div>
+          ${b.author ? `<div class="book-author">${b.author}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;margin-left:8px;flex-shrink:0;">
+          <button onclick="openEditModal(${realIdx})" style="background:var(--purple-dim);border:1px solid rgba(108,92,231,0.3);color:var(--purple-light);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">編集</button>
+          <button onclick="deleteBook(${realIdx})" style="background:rgba(225,112,85,0.1);border:1px solid rgba(225,112,85,0.3);color:var(--coral);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;">削除</button>
+        </div>
+      </div>
+      <div class="book-pills">
+        ${b.pages ? `<span class="pill">${b.pages}p = ${b.pages}m</span>` : ''}
+        ${b.mins  ? `<span class="pill">${b.mins}分</span>` : ''}
+        ${b.date  ? `<span class="pill">${b.date}</span>` : ''}
+      </div>
+      ${b.memo ? `<div class="book-memo">${b.memo}</div>` : ''}
+    </div>`;
+  }).join('');
 }
 
-function changeMonth(d) {
-  calMonth += d;
-  if(calMonth < 0) { calMonth = 11; calYear--; }
-  if(calMonth > 11) { calMonth = 0; calYear++; }
-  selDay = null;
-  renderCal();
+// ── 編集モーダル ──
+let editingIdx = -1;
+
+function openEditModal(idx) {
+  editingIdx = idx;
+  const b = books[idx];
+  document.getElementById('edit-title').value  = b.title  || '';
+  document.getElementById('edit-author').value = b.author || '';
+  document.getElementById('edit-pages').value  = b.pages  || '';
+  document.getElementById('edit-mins').value   = b.mins   || '';
+  document.getElementById('edit-date').value   = b.date   || '';
+  document.getElementById('edit-memo').value   = b.memo   || '';
+  document.getElementById('edit-notice').textContent = '';
+  document.getElementById('edit-modal').style.display = 'flex';
 }
 
-// ---- 通知タブ ----
-function renderNotifs() {
-  var data = loadData();
-  var el = document.getElementById('notif-list');
-  var empty = document.getElementById('notif-empty');
-  var allTimings = [];
-  data.meds.forEach(function(m) {
-    m.timings.forEach(function(t) {
-      allTimings.push({ medName: m.name, label: t.label, time: t.time });
-    });
-  });
-  allTimings.sort(function(a,b){ return a.time.localeCompare(b.time); });
-  if(allTimings.length === 0) { el.innerHTML = ''; empty.style.display = 'block'; return; }
-  empty.style.display = 'none';
-  var grouped = {};
-  allTimings.forEach(function(t) {
-    if(!grouped[t.time]) grouped[t.time] = [];
-    grouped[t.time].push(t);
-  });
-  el.innerHTML = '<div class="notif-card">' + Object.keys(grouped).sort().map(function(time) {
-    var names = grouped[time].map(function(i){ return i.medName + '（' + i.label + '）'; }).join('、');
-    return '<div class="notif-row">'
-      + '<div class="notif-info"><div class="notif-time">' + time + '</div><div class="notif-meds">' + names + '</div></div>'
-      + '<label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>'
-      + '</div>';
-  }).join('') + '</div>';
+function closeEditModal() {
+  document.getElementById('edit-modal').style.display = 'none';
+  editingIdx = -1;
 }
 
-// ---- 初期表示 ----
-renderHome();
-renderTimingBlocks();
+async function saveEdit() {
+  if (editingIdx < 0) return;
+  const title = document.getElementById('edit-title').value.trim();
+  const pages = parseInt(document.getElementById('edit-pages').value) || 0;
+  if (!title) { showNotice('edit-notice', 'タイトルを入力してください', 'err'); return; }
+  if (!pages) { showNotice('edit-notice', 'ページ数を入力してください', 'err'); return; }
+
+  showNotice('edit-notice', '更新中...', '');
+  const updated = {
+    ...books[editingIdx],
+    title,
+    author: document.getElementById('edit-author').value.trim(),
+    pages,
+    mins:  document.getElementById('edit-mins').value,
+    date:  document.getElementById('edit-date').value,
+    memo:  document.getElementById('edit-memo').value.trim(),
+  };
+
+  try {
+    await gasCall({ action:'updateBook', userId:myUID, name:myName, rowIndex: books[editingIdx]._rowIndex, ...updated });
+  } catch(e) {}
+
+  books[editingIdx] = updated;
+  ls(K_BOOKS, JSON.stringify(books));
+  closeEditModal();
+  showToast('更新しました');
+  renderBooks();
+  updateHome();
+}
+
+async function deleteBook(idx) {
+  if (!confirm('「' + books[idx].title + '」を削除しますか？')) return;
+  try {
+    await gasCall({ action:'deleteBook', userId:myUID, rowIndex: books[idx]._rowIndex });
+  } catch(e) {}
+  books.splice(idx, 1);
+  ls(K_BOOKS, JSON.stringify(books));
+  showToast('削除しました');
+  renderBooks();
+  updateHome();
+}
+
+// ── ランキング ──
+function switchRank(mode) {
+  rankMode = mode;
+  document.getElementById('rb-total').classList.toggle('active', mode === 'total');
+  document.getElementById('rb-monthly').classList.toggle('active', mode === 'monthly');
+  renderRanking();
+}
+
+async function loadRanking() {
+  document.getElementById('rank-list').innerHTML = '<div class="loading">ランキングを取得中...</div>';
+  try {
+    rankData = await gasCall({ action:'getRanking' });
+  } catch(e) {
+    document.getElementById('rank-list').innerHTML = '<div class="empty">取得に失敗しました。<br>更新ボタンをお試しください。</div>';
+    return;
+  }
+  renderRanking();
+}
+
+function renderRanking() {
+  const isTotal = rankMode === 'total';
+  const data    = (isTotal ? rankData.total : rankData.monthly) || [];
+  const myIdx   = data.findIndex(d => d.userId === myUID);
+  const myRank  = myIdx >= 0 ? myIdx + 1 : -1;
+  const myEntry = data.find(d => d.userId === myUID);
+  const myTitle = myRank > 0 ? (TITLES.find(t => t.rank === myRank && t.total === isTotal) || null) : null;
+
+  document.getElementById('my-rank-num').textContent   = myRank > 0 ? myRank + '位' : '-';
+  document.getElementById('my-rank-h').textContent     = myEntry ? fmtH(myEntry.height) : fmtH(isTotal ? totalH() : monthlyH());
+  document.getElementById('my-rank-title').textContent = myTitle ? myTitle.label : (myRank > 5 ? '📚 読書見習い' : '記録してランクイン！');
+
+  const top5 = data.slice(0, 5);
+  if (top5.length === 0) {
+    document.getElementById('rank-list').innerHTML = '<div class="empty">まだデータがありません。<br>本を記録してランクインしよう！</div>';
+    return;
+  }
+  document.getElementById('rank-list').innerHTML = top5.map((u, i) => {
+    const rank = i + 1;
+    const t    = TITLES.find(x => x.rank === rank && x.total === isTotal);
+    const cls  = rank === 1 ? 'rank-card r1' : rank === 2 ? 'rank-card r2' : rank === 3 ? 'rank-card r3' : 'rank-card';
+    const med  = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank + '位';
+    const isMe = u.userId === myUID;
+    return `<div class="${cls}">
+      <div class="rank-num">${med}</div>
+      <div class="rank-info">
+        <div class="rank-name">${u.name}${isMe ? '<span class="me-tag">あなた</span>' : ''}</div>
+        ${t ? `<div class="rank-badge" style="background:${t.bg};color:${t.color};">${t.label}</div>` : ''}
+        <div class="rank-h">${fmtH(u.height)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── ユーティリティ ──
+function showNotice(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className   = 'notice' + (type ? ' ' + type : '');
+  if (type === 'ok') setTimeout(() => el.textContent = '', 3000);
+}
+
+// ── PWAインストールバナー ──
+function checkInstallBanner() {
+  const isIOS     = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true;
+  const dismissed = ls(K_BANNER);
+  if (isIOS && !isStandalone && !dismissed) {
+    setTimeout(() => document.getElementById('install-banner').style.display = 'flex', 2000);
+  }
+}
+
+function dismissBanner() {
+  document.getElementById('install-banner').style.display = 'none';
+  ls(K_BANNER, '1');
+}
+
+// ── 初期化 ──
+function init() {
+  myUID  = ls(K_UID) || '';
+  if (!myUID) { myUID = genUID(); ls(K_UID, myUID); }
+  myName = ls(K_NAME) || '';
+  try { const d = ls(K_BOOKS); if (d) books = JSON.parse(d); } catch(e) { books = []; }
+
+  if (myName) {
+    document.getElementById('onboarding').style.display = 'none';
+    showApp();
+  } else {
+    document.getElementById('onboarding').style.display = 'flex';
+  }
+}
+
+// ── Service Worker 登録（PWA） ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+init();
 </script>
 </body>
 </html>
